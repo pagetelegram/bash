@@ -1,0 +1,37 @@
+#!/bin/bash
+
+input_directory="."
+output_directory="./tele"
+
+# Create output directory if it does not exist
+mkdir -p "$output_directory"
+
+# Function to process a single file
+process_file() {
+    local input_file=$1
+    local filename=$(basename "$input_file")
+    local temp_file1="$output_directory/temp1_$filename"
+    local temp_file2="$output_directory/temp2_$filename"
+    local final_output_file="$output_directory/final_$filename"
+
+    echo "Processing file: $filename"
+
+    # Step 1: Convert to MP4
+    ffmpeg -i "$input_file" -c:v libx264 -preset slow -crf 22 -c:a aac -b:a 128k  "$temp_file1"
+
+    # Step 2: Sanitize MP4
+    ffmpeg -i "$temp_file1" -map 0 -c copy -movflags +faststart "$temp_file2"
+
+    # Step 3: Remove metadata
+    ffmpeg -i "$temp_file2" -map_metadata -1 -c copy "$final_output_file"
+
+    # Clean up temporary files
+    rm "$temp_file1"
+    rm "$temp_file2"
+}
+
+# Loop over all MP4 files in the input directory
+for input_file in "$input_directory"/*.mp4; do
+    [ -e "$input_file" ] || continue
+    process_file "$input_file"
+done

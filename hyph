@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Directory to be processed
+DIR="./"
+
+
+#for file in *.*; do
+#  extension="${file##*.}"
+#  filename="${file%.*}"
+#  newfilename="${filename:1:-1}"
+#  mv "$file" "$newfilename.$extension"
+#done
+
+# Loop through all files in the directory
+for file in *; do
+  # Skip if not a file
+  [ -f "$file" ] || continue
+
+  # Create the new filename
+  new_file=$(echo "$file" | tr ' ' '-' | tr -d '.' | tr -cd '[:alnum:]-')
+
+  # Rename the file
+  mv "$file" "$new_file"
+done

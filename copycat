@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Check if a destination path is provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 <destination_path>"
+    exit 1
+fi
+
+DESTINATION=$1
+
+# Function to perform the rsync operation
+perform_rsync() {
+    rsync -avz --progress --partial --append-verify --bwlimit=50000 --no-compress --ignore-errors --stats . "$DESTINATION"
+}
+
+# Function to handle script interruptions and resume
+trap 'echo "Rsync interrupted. Resuming..."; perform_rsync' INT TERM
+
+# Initial rsync call
+perform_rsync
+
+echo "Rsync operation completed successfully."

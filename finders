@@ -1,0 +1,2 @@
+#!/bin/bash
+egrep -ir --include=*.{txt,html,doc,ods,odt,csv,tsv} "$1" .

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Check if a file argument is provided
+if [ -z "$1" ]; then
+  echo "Usage: $0 <text file>"
+  exit 1
+fi
+
+# Check if the text file exists
+if [ ! -f "$1" ]; then
+  echo "File not found!"
+  exit 1
+fi
+
+# Get the filename without extension
+BASENAME=$(basename "$1" .txt)
+
+# Convert the text file to a WAV using espeak
+espeak -f "$1" --stdout | ffmpeg -i - -c:a libmp3lame -b:a 128k "${BASENAME}.mp3"
+
+# Output completion message
+echo "Conversion complete: ${BASENAME}.mp3"

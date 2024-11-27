@@ -1,0 +1,2 @@
+#!/bin/bash
+ffmpeg -i $1 -filter:v scale=640:-1 -c:a copy $1.mp4

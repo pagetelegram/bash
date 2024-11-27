@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Define the target URL
+URL=$1
+
+# Fetch the page content
+echo "Fetching page content from $URL..."
+HTML_CONTENT=$(curl -s "$URL")
+
+# Search for RSS feed links in the HTML content
+echo "Checking for RSS feed links..."
+RSS_LINK=$(echo "$HTML_CONTENT" | grep -oP '(?i)<link[^>]+type="application/rss\+xml"[^>]*>' | grep -oP 'href="[^"]+"' | cut -d'"' -f2)
+
+# Display the result
+if [ -n "$RSS_LINK" ]; then
+    echo "RSS feed found: $RSS_LINK"
+else
+    echo "No RSS feed link found on $URL."
+fi

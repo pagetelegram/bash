@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# The input file should be the first argument to the script
+input_file="$1"
+
+# Check if the input file was provided
+if [ -z "$input_file" ]; then
+    echo "Usage: $0 <input_file>"
+    exit 1
+fi
+
+# Process the file
+awk '{
+    index_n_dot = index($0, " n. ");
+    if (index_n_dot != 0) {
+        print substr($0, 1, index_n_dot - 1);
+    }
+}' "$input_file" > words.dat
+
+echo "Output written to words.dat"

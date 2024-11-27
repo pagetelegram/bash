@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Get the current date in YYYYMMDD format
+current_date=$(date +%Y%m%d)
+
+# Loop over all jpeg and jpg files in the current folder
+for image in *.JPG *.jpeg; do
+  # Skip if no files are found
+  if [ ! -e "$image" ]; then
+    echo "No JPG or JPEG files found."
+    exit 1
+  fi
+
+  # Define the new filename with the current date as prefix
+  new_filename="${current_date}_$image"
+
+  # Step 1: Resize to 1 Megapixel (1000000 pixels)
+  convert "$image" -resize 1000000@ -quality 90 "resized_$image"
+
+  # Step 2: Add a black border (adjust the width of the border as needed)
+  convert "resized_$image" -bordercolor black -border 50x50 "bordered_$image"
+
+  # Step 3: Add the watermark text at the bottom
+  convert "bordered_$image" \
+    -gravity south -pointsize 30 -fill white -annotate +0+10 'Photography by Jason Page for Sticker Chicago 2024-2025. All Rights Reserved.' \
+    "$new_filename"
+
+  # Cleanup intermediate files
+  rm "resized_$image" "bordered_$image"
+
+  echo "Processed: $new_filename"
+done
+
+echo "Processing complete!"

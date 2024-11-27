@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# convert file formats for telegram stream
+
+# Directory containing media files
+input_dir="./"
+# Directory to store converted files
+output_dir="./converted_files"
+
+# Create output directory if it doesn't exist
+mkdir -p "$output_dir"
+
+# Function to convert video files
+convert_video() {
+    local input_file="$1"
+    local output_file="$2"
+    ffmpeg -i "$input_file" -c:v libx264 -preset slow -crf 22 -c:a aac -b:a 128k "$output_file"
+}
+
+# Function to convert audio files
+convert_audio() {
+    local input_file="$1"
+    local output_file="$2"
+    ffmpeg -i "$input_file" -codec:a libmp3lame -qscale:a 2 "$output_file"
+}
+
+# Process each file in the input directory
+for file in "$input_dir"/*; do
+    if [[ -f "$file" ]]; then
+        extension="${file##*.}"
+        filename="${file##*/}"
+        filename_no_ext="${filename%.*}"
+
+        case "$extension" in
+            mp4|mkv|avi|mov|wmv|webm)
+                echo "Converting video file: $filename"
+                convert_video "$file" "$output_dir/${filename_no_ext}.mp4"
+                ;;
+            mp3|wav|flac|aac|ogg)
+                echo "Converting audio file: $filename"
+                convert_audio "$file" "$output_dir/${filename_no_ext}.mp3"
+                ;;
+            *)
+                echo "Skipping unsupported file type: $filename"
+                ;;
+
+        esac
+    fi
+done
+
+echo "Conversion process completed."
+
+# santize filenames
+
+# Function to sanitize and shorten the file name
+sanitize_and_shorten() {
+    local filename="$1"
+    # Remove all spaces, punctuations, and special characters
+    local sanitized=$(echo "$filename" | tr -dc 'a-zA-Z0-9' | tr '[:upper:]' '[:lower:]')
+    # Limit to 20 characters
+    local shortened="${sanitized:0:20}"
+    echo "$shortened"
+}
+
+# Loop through all .mp4 files in the current directory
+for file in *.mp4; do
+    if [[ -f "$file" ]]; then
+        # Get the base name of the file without extension
+        base_name=$(basename "$file" .mp4)
+        # Sanitize and shorten the base name
+        new_base_name=$(sanitize_and_shorten "$base_name")
+        # Form the new file name
+        new_file_name="${new_base_name}.mp4"
+        # Rename the file
+        mv "$file" "$new_file_name"
+    fi
+done
+
+echo "Renaming completed."
+
+# remove meta 
+
+
+# Directory containing MP4 files (change this to your target directory)
+TARGET_DIR="./"
+
+# Create a temporary directory to store processed files
+TEMP_DIR=$(mktemp -d)
+
+# Function to clean up temporary files
+cleanup() {
+    rm -rf "$TEMP_DIR"
+}
+trap cleanup EXIT
+
+# Iterate over all MP4 files in the target directory
+for file in "$TARGET_DIR"/*.mp4; 
+do
+    if [ -f "$file" ]; then
+        echo "Processing $file..."
+        base_name=$(basename "$file")
+        output_file="$TEMP_DIR/$base_name"
+
+        # Remove metadata using ffmpeg
+        ffmpeg -i "$file" -map 0:v -map 0:a -c copy -map_metadata -1 "$output_file" 
+ mv "$output_file" "$file" 
+ echo "Metadata removed from $file"
+    fi
+done
+
+echo "All MP4 files have been processed."

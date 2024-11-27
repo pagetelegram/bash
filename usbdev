@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Function to check if a block device is a USB serial device
+is_usb_serial_device() {
+    local device="$1"
+    udevadm info --query=property --name="$device" | grep -q "ID_SERIAL"
+}
+
+echo "Monitoring for new USB serial device connections. Press Ctrl+C to stop."
+
+# Monitor udev events for block devices
+udevadm monitor --udev --subsystem-match=block | while read -r line; do
+    if echo "$line" | grep -q "add"; then
+        # Extract the device name from the udev event
+        read -r device_event
+        device_name=$(echo "$device_event" | grep -oP '(?<=DEVNAME=)/dev/\S+')
+
+        if [ -n "$device_name" ] && is_usb_serial_device "$device_name"; then
+            echo "New USB serial device connected: $device_name"
+        fi
+    fi
+done

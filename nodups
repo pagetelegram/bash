@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Check if a file name is provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <filename>"
+    exit 1
+fi
+
+# Filename from the command line
+file="$1"
+
+# Read the entire file, convert it to lowercase, sort unique words and display them
+tr ' ' '\n' < "$file" |  # Transform spaces to new lines to treat each word separately
+tr -cd '[[:alnum:]]\n' | # Remove all non-alphanumeric characters, preserving words
+awk '{print tolower($0)}' | # Convert all words to lowercase to ensure case insensitivity
+sort -u                  # Sort words and remove duplicates

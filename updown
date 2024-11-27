@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Function to check internet connectivity and speed on all available interfaces
+check_internet() {
+    # Get a list of active network interfaces with IP addresses
+    INTERFACES=$(ip link show | awk '/^[0-9]+: / {print $2}')
+
+    for INTERFACE in $INTERFACES; do
+        if ip addr show "$INTERFACE" &> /dev/null; then
+            # Check if ping command can reach a public DNS server on this interface
+            if ping -c 1 google.com &> /dev/null; then
+                # Internet is up, get the upload and download speeds for this interface
+                SPEED=$(speedtest --interface=$INTERFACE | grep "Upload" | awk '{print $4}')
+                echo "$(date): INTERNET UP on ${INTERFACE}. Upload speed: ${SPEED} Mbps." >> internet.log
+            else
+                # Internet is down, log the downtime for this interface
+                if [ -s internet.log ]; then
+                    LAST_UP=$(tail -1 internet.log | cut -d' ' -f3-)
+                    DOWNTIME=$(( $(date +%s) - $(date -d "$LAST_UP" +%s) ))
+                    echo "$(date): INTERNET DOWN on ${INTERFACE}. Last up: $LAST_UP, downtime: ${DOWNTIME} seconds." >> internet.log
+                fi
+            fi
+        fi
+    done
+}
+
+# Run the check every minute
+while true; do
+    check_internet
+    sleep 60
+done

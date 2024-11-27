@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Loop through all files in the current directory
+for file in *; do
+    # Extract the numeric prefix of the filename (if any)
+    prefix=$(echo "$file" | sed -n 's/^\([0-9]\+\).*/\1/p')
+
+    # Check if the prefix is non-empty and less than 3 digits
+    if [[ ! -z "$prefix" && ${#prefix} -lt 3 ]]; then
+        # Calculate the number of leading zeros required
+        num_zeros=$((3 - ${#prefix}))
+
+        # Generate a string with the required number of leading zeros
+        zeros=$(printf '%0*d' $num_zeros 0)
+
+        # Construct the new filename with leading zeros
+        new_name="${zeros}${prefix}${file#${prefix}}"
+
+        # Rename the file
+        mv -- "$file" "$new_name"
+        echo "Renamed $file to $new_name"
+    fi
+done

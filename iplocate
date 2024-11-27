@@ -1,0 +1,2 @@
+#!/bin/bash
+links2 --dump https://iplocation.io/ip/$1

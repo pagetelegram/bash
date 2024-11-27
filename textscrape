@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Ensure pdftotext is installed
+if ! command -v pdftotext &> /dev/null
+then
+  echo "Error: pdftotext is not installed. Please install it using your package manager."
+  exit 1
+fi
+
+# Get the path to the folder containing PDF files
+ read -p "Enter the path to the folder containing PDF files: " $folder_path
+#$folder_path = $1
+
+# Create the 'txt' subfolder if it doesn't exist
+mkdir -p "$folder_path/txt"
+
+# Process each PDF file in the folder
+for pdf_file in "$folder_path"/*.pdf
+do
+  # Extract text using pdftotext
+  pdftotext -layout "$pdf_file" "${pdf_file%.pdf}.txt"
+
+  # Move the generated text file to the 'txt' subfolder
+  mv "${pdf_file%.pdf}.txt" "$folder_path/txt"
+done
+
+echo "Text extraction complete. Text files are in the 'txt' subfolder."

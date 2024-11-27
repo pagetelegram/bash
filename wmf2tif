@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Check if ImageMagick is installed
+if ! command -v convert &> /dev/null
+then
+    echo "ImageMagick (convert) could not be found. Please install it to proceed."
+    exit 1
+fi
+
+# Find and convert all .wmf files
+find . -type f -name "*.wmf" | while read -r file; do
+    # Get the directory and filename without the .wmf extension
+    dir=$(dirname "$file")
+    base=$(basename "$file" .wmf)
+    
+    # Convert the file to .tif
+    convert "$file" "$dir/$base.tif"
+    
+    # Check if conversion was successful
+    if [ $? -eq 0 ]; then
+        echo "Converted: $file -> $dir/$base.tif"
+    else
+        echo "Failed to convert: $file"
+    fi
+done

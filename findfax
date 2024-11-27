@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# List of common serial port names to check
+PORTS="/dev/ttyS0 /dev/ttyS1 /dev/ttyS2 /dev/ttyS3 /dev/ttyUSB0 /dev/ttyUSB1"
+
+# Function to check each port
+check_modem() {
+    local port=$1
+    echo "Checking modem on port: $port"
+
+    # Setup serial port and send AT command
+    stty -F $port cs8 115200 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts
+    echo -e 'AT\r' >$port
+
+    # Read response
+    response=$(timeout 2 cat $port)
+
+    # Check if the response includes 'OK'
+    if echo "$response" | grep -q "OK"; then
+        echo "Modem found on $port"
+        return 0
+    else
+        echo "No modem on $port"
+    fi
+    return 1
+}
+
+# Check each port in the list
+for port in $PORTS; do
+    if check_modem $port; then
+        exit 0
+    fi
+done
+
+echo "No modem found on any checked ports."
+exit 1

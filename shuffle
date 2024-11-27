@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Check if a file name is provided
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <filename>"
+  exit 1
+fi
+
+# The file to process
+FILENAME=$1
+
+# Check if the file exists
+if [ ! -f "$FILENAME" ]; then
+  echo "File does not exist: $FILENAME"
+  exit 1
+fi
+
+# Shuffle the lines in the CSV and save to a new file
+shuf "$FILENAME" > "shuffled_$FILENAME"
+
+echo "File has been shuffled and saved as: shuffled_$FILENAME"

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Check if an argument is provided (the WAV file)
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <mp3-audio-file[no extension]>"
+    exit 1
+fi
+
+#ffmpeg -i $1.mp3 $1.wav
+
+# Input Audio file
+input_file="$1"
+
+# Check if the input file exists
+if [ ! -f "$input_file" ]; then
+    echo "Error: File '$input_file' not found."
+    exit 1
+fi
+
+# Output file for the transcription (in the same directory as input)
+output_file="./${input_file%.*}.txt"
+
+# Run Whisper to transcribe the WAV file
+echo "Transcribing $input_file..."
+whisper "$input_file" --language en --output_format txt --output_dir ./
+
+# Move the generated transcription to the desired output file
+mv "${input_file%.*}.txt" "$output_file"
+
+echo "Transcription saved to $output_file"

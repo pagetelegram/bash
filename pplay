@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Directory to search for music files (you can change this path)
+MUSIC_DIR="$1"
+
+# If no directory is specified, use the current directory
+if [ -z "$MUSIC_DIR" ]; then
+    MUSIC_DIR="."
+fi
+
+# Find all audio files (you can modify the file extensions if needed)
+AUDIO_FILES=$(find "$MUSIC_DIR" -type f \( -iname "*.mp3" -o -iname "*.flac" -o -iname "*.wav" -o -iname "*.m4a" -o -iname "*.ogg" \))
+
+# If no audio files are found, print a message and exit
+if [ -z "$AUDIO_FILES" ]; then
+    echo "No audio files found in $MUSIC_DIR"
+    exit 1
+fi
+
+# Shuffle the list of audio files and play them with mpv
+echo "Playing music from $MUSIC_DIR..."
+echo "$AUDIO_FILES" | shuf | mpv --shuffle --loop-file=inf --no-terminal -- "$@"

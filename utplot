@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Check if the correct number of arguments are provided
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <csv_file>"
+    exit 1
+fi
+
+# Assign the input CSV file to a variable
+csv_file="$1"
+
+# Extract filename without extension
+filename=$(basename "$csv_file")
+filename_no_ext="${filename%.*}"
+
+# Create a temporary gnuplot script
+gnuplot_script=$(mktemp)
+
+# Write gnuplot commands to the script
+cat <<EOF > "$gnuplot_script"
+# Set the data separator to comma
+set datafile separator ","
+
+# Set X and Y axis labels
+set xlabel "Day and Time"
+set ylabel "uT"
+
+# Set the time/date format
+set timefmt "%m/%d/%Y %H:%M:%S"
+
+# Set the frequency of date and time labels on the x-axis to 5 times a day
+set xtics ("00:00:00" 0, "04:48:00" 1, "09:36:00" 2, "14:24:00" 3, "19:12:00" 4, "23:59:59" 5) rotate
+
+# Set the format of x-axis labels to display day number and time
+set format x "%j %H:%M"
+
+# Set the resolution of the chart to 10000 pixels on the x-axis
+set terminal jpeg size 10000,600
+
+# Specify the output format and file
+set output "${filename_no_ext}.jpeg"
+
+# Plot the data using the specified columns
+plot "$csv_file" using (timecolumn(1)):5 with lines title "uT"
+EOF
+
+# Use gnuplot to generate the plot
+gnuplot "$gnuplot_script"
+
+# Remove the temporary gnuplot script
+rm "$gnuplot_script"
+
+echo "Graph saved as ${filename_no_ext}.jpeg"

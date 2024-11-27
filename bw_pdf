@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Check if the filename is passed as an argument
+if [ -z "$1" ]; then
+  echo "Usage: $0 <pdf-file>"
+  exit 1
+fi
+
+# Define variables
+input_pdf="$1"
+temp_dir="temp_images"
+output_pdf="final.pdf"
+
+# Create a temporary directory for images
+mkdir -p "$temp_dir"
+
+# Step 1: Convert each page of the PDF to a numbered JPEG
+echo "Converting PDF pages to JPEG images..."
+gs -dNOPAUSE -dBATCH -sDEVICE=jpeg -r300 -dJPEGQ=100 \
+   -sOutputFile="$temp_dir/page_%04d.jpeg" "$input_pdf"
+
+# Step 2 & 3: Optimize levels and set contrast to 100% for each JPEG
+echo "Adjusting levels and contrast for each image..."
+for img in "$temp_dir"/*.jpeg; do
+  convert "$img" -level 0%,100% -contrast "$img"
+done
+
+# Step 4: Combine processed images back into a single PDF
+echo "Combining images into final PDF..."
+convert "$temp_dir"/page_*.jpeg "$output_pdf"
+
+# Clean up temporary images
+rm -r "$temp_dir"
+
+echo "Process complete. Output PDF: $output_pdf"

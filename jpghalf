@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Check if ImageMagick is installed
+if ! command -v convert &> /dev/null; then
+    echo "ImageMagick is not installed. Please install it with 'sudo apt install imagemagick'."
+    exit 1
+fi
+
+# Loop through all JPG files in the current directory
+for img in *.jpg *.jpeg; do
+    if [ -f "$img" ]; then
+        # Get image dimensions
+        width=$(identify -format "%w" "$img")
+        height=$(identify -format "%h" "$img")
+
+        # Calculate half the dimensions
+        half_width=$((width / 2))
+        half_height=$((height / 2))
+
+        # Compress and resize image
+        output_file="compressed_${img}"
+        convert "$img" -resize "${half_width}x${half_height}" -quality 75 "$output_file"
+
+        echo "Processed $img: resized to ${half_width}x${half_height} and saved as $output_file"
+    fi
+done
+
+echo "All JPG files have been processed."

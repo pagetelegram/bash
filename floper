@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Output file
+output_file="SidsFloppies02.txt"
+
+# Empty the output file if it exists, or create it if it doesn't
+> "$output_file"
+
+# Function to process files
+process_files() {
+    local path="$1"
+    # Loop through all files and directories in the given path
+    for item in "$path"/*; 
+    do
+        if [ -d "$item" ]; then
+            # If the item is a directory, call the function recursively
+            process_files "$item"
+        elif [ -f "$item" ]; then
+            extension="${item##*.}"
+            echo "Filename: $item" >> "$output_file"
+            echo "---------------------------" >> "$output_file"
+            if [[ "$extension" == "doc" ]]; then
+                # Attempt to convert .doc to .docx using libreoffice
+                libreoffice --headless --convert-to docx "$item" --outdir /tmp
+                temp_docx_file="/tmp/${item%.*}.docx"
+                if [ -f "$temp_docx_file" ]; then
+                    # Convert .docx to text using pandoc
+                    pandoc "$temp_docx_file" -t plain -o /tmp/tempfile.txt
+                    if [ $? -eq 0 ]; then
+                        cat /tmp/tempfile.txt | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                        rm /tmp/tempfile.txt
+                    else
+                        echo "Error converting $temp_docx_file to text, attempting text extraction with strings" >> "$output_file"
+                        strings "$temp_docx_file" | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                    fi
+                    rm "$temp_docx_file"
+                else
+                    echo "Error converting $item to .docx with LibreOffice, attempting with AbiWord" >> "$output_file"
+                    abiword --to=docx "$item" -o /tmp/tempfile.docx
+                    if [ -f "/tmp/tempfile.docx" ]; then
+                        pandoc "/tmp/tempfile.docx" -t plain -o /tmp/tempfile.txt
+                        if [ $? -eq 0 ]; then
+                            cat /tmp/tempfile.txt | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                            rm /tmp/tempfile.txt
+                        else
+                            echo "Error converting /tmp/tempfile.docx to text, attempting text extraction with strings" >> "$output_file"
+                            strings "/tmp/tempfile.docx" | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                        fi
+                        rm "/tmp/tempfile.docx"
+                    else
+                        echo "Error converting $item to .docx with AbiWord, attempting with Antiword" >> "$output_file"
+                        antiword "$item" > /tmp/tempfile.txt
+                        if [ $? -eq 0 ]; then
+                            cat /tmp/tempfile.txt | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                            rm /tmp/tempfile.txt
+                        else
+                            echo "Error extracting text with Antiword, attempting with Catdoc" >> "$output_file"
+                            catdoc "$item" > /tmp/tempfile.txt
+                            if [ $? -eq 0 ]; then
+                                cat /tmp/tempfile.txt | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                                rm /tmp/tempfile.txt
+                            else
+                                echo "Error extracting text with Catdoc, using cat as last resort" >> "$output_file"
+                                cat "$item" | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                            fi
+                        fi
+                    fi
+                fi
+            elif [[ "$extension" == "docx" ]]; then
+                # Convert .docx to text using pandoc
+                pandoc "$item" -t plain -o /tmp/tempfile.txt
+                if [ $? -eq 0 ]; then
+                    cat /tmp/tempfile.txt | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                    rm /tmp/tempfile.txt
+                else
+                    echo "Error converting $item to text, attempting text extraction with strings" >> "$output_file"
+                    strings "$item" | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+                fi
+            else
+                # Attempt text extraction for unknown file types
+                cat "$item" | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file" || \
+                strings "$item" | tr -cd '[:alnum:][:punct:][:space:]' >> "$output_file"
+            fi
+            echo -e "\n\n" >> "$output_file"  # Add some spacing between files
+        fi
+    done
+}
+
+# Start processing from the current directory
+process_files "."
+
+echo "All files' content has been output to $output_file"

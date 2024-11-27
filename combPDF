@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Specify the folder containing the PDFs
+folder_path=$1
+
+# Name for the combined PDF file
+output_file="combined.pdf"
+
+# Check if pdftk is installed
+if ! command -v pdftk &> /dev/null; then
+  echo "Error: pdftk is not installed. Please install it to proceed."
+  exit 1
+fi
+
+# Ensure the output file doesn't already exist
+if [[ -f "$output_file" ]]; then
+  echo "Warning: Output file '$output_file' already exists. It will be overwritten."
+fi
+
+# Use pdftk to concatenate the PDFs
+pdftk "$folder_path"/*.pdf cat output "$output_file"
+
+echo "PDFs combined successfully into '$output_file'!"

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Define the output file
+output="results.bib"
+
+# Create or clear the output file
+> "$output"
+
+# Loop through all .bib files in the current directory
+for bibfile in *.bib; do
+  # Check if there are any .bib files
+  if [[ -e "$bibfile" ]]; then
+    # Append the content of each .bib file to the output file
+    cat "$bibfile" >> "$output"
+    # Add a newline for separation (optional)
+    echo "" >> "$output"
+  fi
+done
+
+echo "All .bib files have been concatenated into $output"

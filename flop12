@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# Function to identify the correct block device for the USB floppy drive
+identify_floppy_device() {
+    lsblk -o NAME,TYPE,RO,SIZE | awk '$2 == "disk" && $3 == 1 && ($4 == "1.4M" || $4 == "720K") {print $1}'
+}
+
+# Function to create an image file with given block size and count
+create_image() {
+    local bs=$1
+    local count=$2
+
+    dd if="$DEVICE" of="$OUTPUT_FILE" bs="$bs" count="$count" status=progress conv=noerror,sync
+    return $?
+}
+
+# Function to refresh the device
+refresh_device() {
+    # Unmount the device if it is mounted
+    udisksctl unmount -b "$DEVICE" 2>/dev/null
+
+    # Power off the device to ensure it is properly reset
+    udisksctl power-off -b "$DEVICE" 2>/dev/null
+
+    # Sleep for a short period to allow the system to recognize the device removal
+    sleep 2
+
+    # Power on the device to ensure it is properly recognized
+    udisksctl power-on -b "$DEVICE" 2>/dev/null
+
+    # Sleep for a short period to allow the system to recognize the device
+    sleep 2
+}
+
+# Function to retry identification of the USB floppy drive
+retry_identify_floppy_device() {
+    local attempts=3
+    for (( i=1; i<=$attempts; i++ )); do
+        FL_DEVICE=$(identify_floppy_device)
+        if [ -n "$FL_DEVICE" ]; then
+            echo "Identified USB floppy drive: /dev/$FL_DEVICE"
+            return 0
+        fi
+        echo "Retrying to identify USB floppy drive... ($i/$attempts)"
+        sleep 2
+    done
+    return 1
+}
+
+# Check if the output file path is provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 <output_file_path> [block_device (optional)]"
+    exit 1
+fi
+
+# Define the output file path
+OUTPUT_FILE="$1"
+
+# If block device is provided, use it; otherwise, identify the floppy device
+if [ -n "$2" ]; then
+    DEVICE="$2"
+else
+    retry_identify_floppy_device
+    if [ $? -ne 0 ]; then
+        echo "Error: USB floppy drive not found."
+        exit 1
+    fi
+    DEVICE="/dev/$FL_DEVICE"
+fi
+
+# Check if the device exists
+if [ ! -e "$DEVICE" ]; then
+    echo "Error: Device $DEVICE does not exist."
+    exit 1
+fi
+
+# Check if the device is a block device
+if [ ! -b "$DEVICE" ]; then
+    echo "Error: $DEVICE is not a block device."
+    exit 1
+fi
+
+# Refresh the device before each attempt
+refresh_device
+
+# Attempt to create image file for 1.4MB floppy
+create_image 512 2880
+if [ $? -eq 0 ]; then
+    echo "Image file created successfully as 1.4MB: $OUTPUT_FILE"
+    exit 0
+fi
+
+# Refresh the device again before next attempt
+refresh_device
+
+# Attempt to create image file for 720KB floppy
+create_image 512 1440
+if [ $? -eq 0 ]; then
+    echo "Image file created successfully as 720KB: $OUTPUT_FILE"
+    exit 0
+fi
+
+echo "Error: Failed to create image file. Please check the floppy disk and try again."
+exit 1

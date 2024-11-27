@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Script to add a still image to audio and create an mp4 video
+
+# Define input and output filenames (modify as needed)
+image_file="$1"
+audio_file="$2"
+output_file="output.mp4"
+
+# Check if required arguments are provided
+if [ -z "$image_file" ] || [ -z "$audio_file" ]; then
+  echo "Usage: $0 <image_file> <audio_file>"
+  exit 1
+fi
+
+# Check if input files exist
+if [ ! -f "$image_file" ] || [ ! -f "$audio_file" ]; then
+  echo "Error: Input files do not exist!"
+  exit 1
+fi
+
+# Create the video using ffmpeg
+ffmpeg -hide_banner \
+  -loop 1 -i "$image_file" \
+  -i "$audio_file" \
+  -c:v libx264 -tune stillimage \
+  -c:a copy \
+  -shortest \
+  "$output_file"
+
+echo "Video created: $output_file"
+

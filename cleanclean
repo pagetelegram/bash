@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Check if a file name is provided as an argument
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <filename>"
+    exit 1
+fi
+
+# The sed command to remove words with middle capital letters or accents
+# -E option enables extended regular expressions
+# The first pattern matches words with a capital letter in the middle
+# The second pattern matches words with accents
+sed -E 's/\b[a-z]+[A-Z]+[a-zA-Z]*\b//g; s/\b[^\x00-\x7F]+\b//g' $1

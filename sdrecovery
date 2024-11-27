@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Function to identify the new device block
+identify_device() {
+  echo "Page Telegram sdrecovery v 1.0, dev 2024-08-07"
+  echo "Please insert the SD card and press Enter..."
+  read -r
+  
+  # List devices before insertion
+  devices_before=$(lsblk -d -n -o NAME)
+  
+  echo "Waiting for the SD card to be inserted..."
+  
+  while true; do
+    sleep 2
+    # List devices after insertion
+    devices_after=$(lsblk -d -n -o NAME)
+    
+    # Find the new device block
+    new_device=$(comm -13 <(echo "$devices_before") <(echo "$devices_after"))
+    
+    if [ -n "$new_device" ]; then
+      echo "New device detected: /dev/$new_device"
+      break
+    fi
+  done
+}
+
+# Function to image the SD card
+image_sd_card() {
+  local device=$1
+  local image_file=~/sdcard.img
+  local log_file=~/sdcard.log
+
+  echo "Creating image of /dev/$device to $image_file..."
+  sudo ddrescue -d -r3 "/dev/$device" "$image_file" "$log_file"
+}
+
+# Function to mount the image file
+mount_image() {
+  local image_file=~/sdcard.img
+  local mount_point=/mnt/recovered_sdcard
+
+  echo "Mounting the image file $image_file to $mount_point..."
+  sudo mkdir -p "$mount_point"
+  sudo mount -o loop "$image_file" "$mount_point"
+  echo "Image mounted successfully to $mount_point"
+}
+
+# Main script execution
+identify_device
+image_sd_card "$new_device"
+mount_image
+
+echo "Process completed successfully. Please look at your file manager for mounted recovered data."

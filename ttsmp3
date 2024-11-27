@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Check if the TTS tool is installed
+if ! command -v tts &> /dev/null
+then
+    echo "Coqui TTS is not installed. Please install it first: pip install TTS"
+    exit 1
+fi
+
+# Check if the text file is provided
+if [ -z "$1" ]; then
+  echo "Usage: $0 <text file>"
+  exit 1
+fi
+
+# Check if the file exists
+if [ ! -f "$1" ]; then
+  echo "File not found!"
+  exit 1
+fi
+
+# Get the basename of the file (without extension)
+BASENAME=$(basename "$1" .txt)
+
+# Convert the text file to speech and save as a WAV file
+tts --text "$(cat "$1")" --out_path "${BASENAME}.wav"
+
+# Convert the WAV file to MP3 using ffmpeg with 128k bitrate
+ffmpeg -i "${BASENAME}.wav" -codec:a libmp3lame -b:a 128k "${BASENAME}.mp3"
+
+# Cleanup WAV file after conversion
+rm "${BASENAME}.wav"
+
+# Inform the user
+echo "Conversion complete: ${BASENAME}.mp3"

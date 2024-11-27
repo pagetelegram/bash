@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Detects all devices on the network and displays their IP and possible description
+
+# Define your network range here. This is just an example range.
+# You might need to adjust it according to your actual network configuration.
+# Commonly, it could be something like 192.168.1.0/24.
+NETWORK_RANGE="10.1.0.0/24"
+
+echo "Scanning the network, please wait..."
+
+# Running nmap scan. Adjust parameters according to your needs.
+# -sP (No port scan) just ping scan to discover hosts.
+# --open (shows only open (unfiltered) ports)
+# -oG - (output in grepable format, to stdout)
+nmap -sP $NETWORK_RANGE | grep report | awk '{print $5 " " $6}'
+
+echo "Scan complete."

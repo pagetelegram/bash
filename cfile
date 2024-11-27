@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sed '/^[[:alpha:]]*$/!d' $1 > dump_$1.txt
+awk '{gsub(/[[:blank:]]/,""); print}' dump_$1.txt | cat -n > nospc_$1.txt

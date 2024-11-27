@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Input parameters
+mp3_dir="$1"  # Location of mp3 files
+output_dir="$2"  # Location for output files
+playlist_file="${output_dir}/playlist.m3u"
+final_output="${output_dir}/final_playlist.mp3"
+bitrate="128k"
+
+# Ensure both input directories are provided
+if [ -z "$mp3_dir" ] || [ -z "$output_dir" ]; then
+    echo "Usage: $0 <location_of_mp3_files> <location_for_output_files>"
+    exit 1
+fi
+
+# Create output directory if it doesn't exist
+mkdir -p "$output_dir"
+
+# Shuffle mp3 files and create a playlist
+find "$mp3_dir" -type f -name "*.mp3" | shuf > "$playlist_file"
+
+# Temporary directory for processing
+temp_dir=$(mktemp -d)
+
+# Function to generate TTS using espeak and convert to mp3
+generate_tts() {
+    text=$1
+    output_file=$2
+    espeak "$text" --stdout | ffmpeg -y -i - -ar 44100 -ac 2 "$output_file"
+}
+
+# Interleave songs and TTS announcements
+counter=1
+total_tracks=$(wc -l < "$playlist_file")
+combined_tracks=()
+
+for mp3_file in $(cat "$playlist_file"); do
+    base_name=$(basename "$mp3_file" .mp3)
+
+    # Add the current mp3 to the processing list
+    track_mp3="$temp_dir/song_${counter}.mp3"
+    cp "$mp3_file" "$track_mp3"
+    combined_tracks+=("$track_mp3")
+
+    # Generate the TTS announcement for the next track if not the last track
+    if [ "$counter" -lt "$total_tracks" ]; then
+        next_base_name=$(basename "$(sed -n "$((counter+1))p" "$playlist_file")" .mp3)
+        tts_text="Thank you for listening to Hand Is Radio. Next up is $next_base_name."
+        tts_output="$temp_dir/tts_${counter}.mp3"
+        generate_tts "$tts_text" "$tts_output"
+        combined_tracks+=("$tts_output")
+    fi
+
+    counter=$((counter + 1))
+done
+
+# Create the concat list for ffmpeg
+concat_list="$temp_dir/concat_list.txt"
+for track in "${combined_tracks[@]}"; do
+    echo "file '$track'" >> "$concat_list"
+done
+
+# Combine all tracks into one final output with a 128kbps bitrate
+ffmpeg -y -f concat -safe 0 -i "$concat_list" -b:a "$bitrate" "$final_output"
+
+# Clean up temporary files
+rm -r "$temp_dir"
+
+echo "Final playlist with jingles has been created: $final_output"

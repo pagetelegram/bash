@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# Activate the virtual environment
+source ~/.bashrc/whisper-venv/bin/activate
+
+# Check if CUDA is available via PyTorch
+check_cuda() {
+    python -c "import torch; print(torch.cuda.is_available())"
+}
+
+# Run whisper on GPU and save output to a text file
+run_whisper_on_gpu() {
+    audio_file=$1  # Pass the audio file as the first argument to the script
+
+    if [ -z "$audio_file" ]; then
+        echo "Please provide an audio file to transcribe."
+        exit 1
+    fi
+
+    # Create the output text file path
+    output_file="${audio_file%.*}.txt"
+
+    echo "Running Whisper model on the GPU to transcribe: $audio_file"
+    echo "Saving transcription to: $output_file"
+    
+    # Run the Whisper transcription and save the output to the text file
+    python - << EOF > "$output_file"
+import whisper
+import torch
+
+# Load model and move it to GPU
+model = whisper.load_model("base").to("cuda")
+
+# Load and preprocess the audio file
+audio = whisper.load_audio("$audio_file")
+audio = whisper.pad_or_trim(audio)
+
+# Move Mel spectrogram generation to GPU
+mel = whisper.log_mel_spectrogram(audio).to("cuda")
+
+# Decode the transcription on the GPU with FP16 precision for performance
+options = whisper.DecodingOptions(fp16=True)
+result = model.decode(mel, options)
+
+# Print the transcribed text
+print(result.text)
+EOF
+}
+
+# Main script execution
+echo "Checking if CUDA is available..."
+cuda_available=$(check_cuda)
+if [ "$cuda_available" == "True" ]; then
+    echo "CUDA is available, proceeding..."
+else
+    echo "CUDA is not available. Please ensure you have an NVIDIA GPU with CUDA support."
+    exit 1
+fi
+
+# Run Whisper model on provided audio file and save output to a text file
+if [ -z "$1" ]; then
+    echo "Usage: $0 <audio_file>"
+else
+    run_whisper_on_gpu "$1"
+fi

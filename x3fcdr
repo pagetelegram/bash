@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Check if input and output directories are passed as arguments
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 input_directory output_directory"
+    exit 1
+fi
+
+# Set input and output directories
+INPUT_DIR=$1
+OUTPUT_DIR=$2
+
+# Create output directory if it doesn't exist
+mkdir -p "$OUTPUT_DIR"
+
+# Loop through all TIFF files in the input directory
+for tiff_file in "$INPUT_DIR"/*.tiff; do
+    if [ -f "$tiff_file" ]; then
+        # Get the base name of the file without the extension
+        base_name=$(basename "$tiff_file" .tiff)
+        
+        # Set the output file path
+        output_file="$OUTPUT_DIR/$base_name.cdr"
+
+        # Convert TIFF to raw CDR-like format
+        # This converts the image into grayscale raw data as per pixel data
+        convert "$tiff_file" -depth 16 gray:"$output_file"
+
+        echo "Converted $tiff_file to $output_file"
+    fi
+done
+
+echo "All TIFF files have been converted."

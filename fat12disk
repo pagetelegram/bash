@@ -1,0 +1,124 @@
+#!/bin/bash
+
+# Function to convert various file formats to text
+convert_to_text() {
+    local filepath=$1
+    local extension="${filepath##*.}"
+    local filename=$(basename "$filepath")
+    local text_content=""
+
+    case "$extension" in
+        txt|TXT)
+            text_content=$(cat "$filepath")
+            ;;
+        doc|DOC)
+            if command -v antiword &> /dev/null; then
+                text_content=$(antiword "$filepath")
+            elif command -v catdoc &> /dev/null; then
+                text_content=$(catdoc "$filepath")
+            else
+                text_content="No suitable tool found to convert .doc files"
+            fi
+            ;;
+        pdf|PDF)
+            if command -v pdftotext &> /dev/null; then
+                text_content=$(pdftotext "$filepath" -)
+            else
+                text_content="No suitable tool found to convert .pdf files"
+            fi
+            ;;
+        html|HTML|htm|HTM)
+            if command -v lynx &> /dev/null; then
+                text_content=$(lynx -dump "$filepath")
+            else
+                text_content="No suitable tool found to convert .html files"
+            fi
+            ;;
+        *)
+            text_content=$(strings "$filepath")
+            ;;
+    esac
+
+    echo "##### $filename #####" >> "$OUTPUT_FILE"
+    echo "$text_content" >> "$OUTPUT_FILE"
+}
+
+# Function to identify the floppy drive device by size
+identify_floppy_device() {
+    local floppy_device=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -i '1.4M' | grep -i 'disk' | awk '{print $1}')
+    if [ -z "$floppy_device" ]; then
+        echo "Floppy drive not found."
+        exit 1
+    fi
+    echo "/dev/$floppy_device"
+}
+
+# Function to handle mounting the floppy disk
+mount_floppy() {
+    while true; do
+        if sudo mount "$SRC_DEVICE" "$MOUNT_POINT"; then
+            break
+        else
+            read -p "Error mounting the floppy disk. Please make sure the disk is inserted properly and press [Enter] to retry or type 'q' to quit: " RESPONSE
+            if [ "$RESPONSE" == "q" ]; then
+                echo "Exiting."
+                exit 1
+            fi
+        fi
+    done
+}
+
+# Main loop
+SEQUENCE=1
+while true; do
+    # Check if the correct number of arguments are provided
+    if [ "$#" -ne 1 ]; then
+        echo "Usage: $0 <output_file_prefix>"
+        exit 1
+    fi
+
+    # Identify the floppy drive device
+    SRC_DEVICE=$(identify_floppy_device)
+    OUTPUT_FILE_PREFIX=$1
+    OUTPUT_FILE="${OUTPUT_FILE_PREFIX}_${SEQUENCE}.txt"
+    TEMP_DIR=$(mktemp -d)
+
+    # Set mount point
+    MOUNT_POINT=~/current_disk
+
+    # Create the mount directory if it does not exist
+    mkdir -p "$MOUNT_POINT"
+
+    # Mount the source device to the specified directory
+    mount_floppy
+
+    # Use rsync to copy all files from the floppy disk to the temporary directory
+    rsync -a "$MOUNT_POINT/" "$TEMP_DIR/"
+
+    # Unmount the source device
+    sudo umount "$MOUNT_POINT"
+
+    # Traverse all files in the temporary directory and convert them to text
+    find "$TEMP_DIR" -type f | while read -r file; do
+        convert_to_text "$file"
+    done
+
+    # Clean up the temporary directory
+    rm -rf "$TEMP_DIR"
+
+    echo "Content extraction complete. Output saved to $OUTPUT_FILE."
+
+    # Increment sequence number for the next output file
+    SEQUENCE=$((SEQUENCE + 1))
+
+    # Prompt to continue or quit
+    read -p "Please unmount the floppy disk, insert the next one, and press [Enter] to continue or type 'q' to quit: " CONTINUE
+    if [ "$CONTINUE" == "q" ]; then
+        echo "Exiting."
+        break
+    fi
+
+    # Wait for the user to insert the next floppy disk and handle mounting issues
+    mount_floppy
+    sudo umount "$MOUNT_POINT"
+done

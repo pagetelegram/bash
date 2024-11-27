@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Ensure script is executed from the correct directory
+TARGET_DIR=$(pwd)
+
+# Function to recursively copy files
+copy_files() {
+    local dir="$1"
+    
+    for file in "$dir"/*; do
+        if [ -d "$file" ]; then
+            # If it's a directory, recursively call the function
+            copy_files "$file"
+        elif [ -f "$file" ]; then
+            # If it's a file, copy it to the target directory
+            cp "$file" "$TARGET_DIR"
+        fi
+    done
+}
+
+# Start the recursive copy process from the current directory
+copy_files "$TARGET_DIR"
+
+echo "All files have been copied to $TARGET_DIR"

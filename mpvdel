@@ -1,0 +1,27 @@
+#!/bin/bash
+
+DIRECTORY="$1"
+
+# Check if the argument is a directory
+if [ ! -d "$DIRECTORY" ]; then
+    echo "The specified path is not a directory."
+    exit 1
+fi
+
+# Loop through each file in the directory
+for FILE in "$DIRECTORY"/*; do
+    # Check if the file is a regular file
+    if [ -f "$FILE" ]; then
+        echo "Playing: $FILE"
+        mpv "$FILE"
+
+        # Prompt for deletion after playback
+        read -p "Delete this file? (y/n) " -n 1 -r
+        echo    # move to a new line
+        if [[ $REPLY =~ ^[Yy]$ ]]
+        then
+            echo "Deleting: $FILE"
+            rm -f "$FILE"
+        fi
+    fi
+done

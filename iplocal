@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Function to get active network interfaces excluding loopback
+get_active_interfaces() {
+    # Use ifconfig to list interfaces, grep to exclude loopback, and awk to parse interface names
+    ifconfig | grep -vE '^lo' | awk '/^[a-zA-Z0-9]/ {print $1}' | tr -d ':'
+}
+
+# Function to get the IPv4 address for an interface
+get_ipv4_for_interface() {
+    local interface=$1
+    # Fetch the first IPv4 address for the interface using ifconfig
+    ifconfig $interface | grep -oP 'inet \K[\d.]+' | head -n 1
+}
+
+echo "Scanning for active network interfaces..."
+
+# Identify and scan all LAN networks based on active interfaces
+while IFS= read -r interface; do
+    ip=$(get_ipv4_for_interface "$interface")
+    if [[ -n "$ip" ]]; then
+        # Assuming a subnet mask of 255.255.255.0 (/24)
+        network="${ip%.*}.0/24"
+        echo "Found IPv4 address $ip on interface $interface. Scanning network $network..."
+
+        # Perform the scan and format the output
+        sudo nmap -sS -O "$network" | awk '/Nmap scan report for/ {
+            ip=$NF; getline;
+            if ($1 == "MAC") {
+                mac=$3 " " $4 " " $5 " " $6;
+                getline; if ($1 == "Device") {desc=$3 " " $4 " " $5 " " $6; getline;}
+            }
+            if ($1 == "Uptime") {uptime=$3 " " $4 " " $5 " " $6;}
+            print ip ", " mac ", " desc ", " uptime;
+            mac=""; desc=""; uptime="";
+        }'
+    fi
+done < <(get_active_interfaces)

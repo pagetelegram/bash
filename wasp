@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# Check if CUDA is available via PyTorch
+check_cuda() {
+    python3 -c "import torch; print(torch.cuda.is_available())"
+}
+
+# Install Whisper and PyTorch with GPU support
+install_dependencies() {
+    # Check if pipx is installed, install if not
+    if ! command -v pipx &> /dev/null
+    then
+        echo "pipx is not installed. Installing pipx..."
+        python3 -m pip install --user pipx
+        python3 -m pipx ensurepath
+        export PATH="$PATH:$HOME/.local/bin"
+    fi
+    
+    # Ensure we have pipx in the environment and install necessary packages
+    echo "Installing torch, torchvision, torchaudio, and openai-whisper using pipx..."
+    
+    # If torch is missing, install it
+    if ! python3 -c "import torch" &> /dev/null
+    then
+        echo "Installing torch and dependencies with CUDA support..."
+        pipx install torch torchvision torchaudio --pip-args "--extra-index-url https://download.pytorch.org/whl/cu117"
+    fi
+
+    # If whisper is missing, install it
+    if ! python3 -c "import whisper" &> /dev/null
+    then
+        echo "Installing Whisper..."
+        pipx install openai-whisper
+    fi
+}
+
+# Check if the necessary libraries are installed
+check_installed() {
+    if python3 -c "import torch, whisper" &> /dev/null; then
+        echo "All dependencies are installed."
+    else
+        echo "Some dependencies are missing, attempting to install..."
+        install_dependencies
+    fi
+}
+
+# Run whisper on GPU
+run_whisper_on_gpu() {
+    audio_file=$1  # Pass the audio file as the first argument to the script
+
+    if [ -z "$audio_file" ]; then
+        echo "Please provide an audio file to transcribe."
+        exit 1
+    fi
+
+    echo "Running Whisper model on the GPU to transcribe: $audio_file"
+    python3 - << EOF
+import whisper
+import torch
+
+# Load model and move it to GPU
+model = whisper.load_model("base").to("cuda")
+
+# Load and preprocess the audio file
+audio = whisper.load_audio("$audio_file")
+audio = whisper.pad_or_trim(audio)
+
+# Move Mel spectrogram generation to GPU
+mel = whisper.log_mel_spectrogram(audio).to("cuda")
+
+# Decode the transcription on the GPU with FP16 precision for performance
+options = whisper.DecodingOptions(fp16=True)
+result = model.decode(mel, options)
+
+# Print the transcribed text
+print("Transcription: ", result.text)
+EOF
+}
+
+# Main script execution
+echo "Checking if CUDA is available..."
+cuda_available=$(check_cuda)
+if [ "$cuda_available" == "True" ]; then
+    echo "CUDA is available, proceeding..."
+    check_installed
+else
+    echo "CUDA is not available. Please ensure you have an NVIDIA GPU with CUDA support."
+    exit 1
+fi
+
+# Run Whisper model on provided audio file
+if [ -z "$1" ]; then
+    echo "Usage: $0 <audio_file>"
+else
+    run_whisper_on_gpu "$1"
+fi

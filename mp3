@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Create 'mp3' subfolder if not exists
+mkdir -p mp3
+
+# Loop through all video files in the current directory
+for video_file in *.{mp4,mkv,avi,flv,wmv,mov,webm}; do
+    # Check if the file is a regular file
+    if [ -f "$video_file" ]; then
+        # Extract the file name without extension
+        file_name=$(basename "$video_file" .$(echo "$video_file" | awk -F . '{print $NF}'))
+
+        # Convert video to MP3 and save in 'mp3' subfolder
+        ffmpeg -i "$video_file" -q:a 0 -map a "mp3/${file_name}.mp3"
+
+        echo "Converted: $video_file"
+    fi
+done
+
+echo "Conversion complete."

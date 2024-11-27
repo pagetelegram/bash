@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Check for required input: CSV file and text file to fax
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <fax_numbers.csv> <fax_content.txt>"
+    exit 1
+fi
+
+# Assign arguments to variables
+csv_file="$1"
+text_file="$2"
+
+# Check if the required files exist
+if [ ! -f "$csv_file" ] || [ ! -f "$text_file" ]; then
+    echo "Error: Files do not exist."
+    exit 1
+fi
+
+# Read fax numbers from the first column of the CSV
+while IFS=',' read -r fax_number rest; do
+    echo "Sending fax to $fax_number..."
+    efax -d /dev/ttyS0 -o /tmp/fax.log -t "T$fax_number" "$text_file"
+    echo "Fax to $fax_number sent. Check /tmp/fax.log for details."
+done < "$csv_file"

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Bash history file
+history_file="$HOME/.bash_history"
+
+# Prompt user to enter the search term (full or partial command)
+read -p "Enter the command or part of the command to search for: " search_term
+
+# Check if the Bash history file exists
+if [[ -f "$history_file" ]]; then
+  # Perform the search using grep, highlighting the search term in results
+  echo "Searching for '$search_term' in $history_file..."
+  grep --color=always -i "$search_term" "$history_file"
+
+  # Check the result of the grep command
+  if [[ $? -ne 0 ]]; then
+    echo "No matches found for '$search_term'."
+  else
+    echo "Search complete."
+  fi
+else
+  echo "Bash history file not found: $history_file"
+fi

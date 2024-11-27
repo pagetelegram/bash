@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Check if pandoc is installed
+if ! command -v pandoc &> /dev/null; then
+    echo "Error: pandoc is not installed. Please install it first."
+    exit 1
+fi
+
+# Function to recursively convert .txt to .rtf
+convert_txt_to_rtf() {
+    local folder="$1"
+    find "$folder" -type f -name "*.txt" | while read -r txt_file; do
+        rtf_file="${txt_file%.txt}.rtf"  # Change file extension to .rtf
+        echo "Converting: $txt_file -> $rtf_file"
+        pandoc "$txt_file" -o "$rtf_file"
+    done
+}
+
+# Run the function on the current directory or specified directory
+target_directory="${1:-.}"  # Default to current directory if no argument is provided
+convert_txt_to_rtf "$target_directory"
+
+echo "Conversion completed."

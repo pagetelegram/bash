@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Create the transcoded directory if it doesn't already exist
+mkdir -p transcoded
+
+# Loop through all media files in the current directory
+for file in *.{mp3,mp4,mkv,avi,flv,wav,mov}; do
+    # Use ffmpeg to convert files to MP3 at 96kbps
+    ffmpeg -i "$file" -b:a 96k "transcoded/${file%.*}.mp3"
+done

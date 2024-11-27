@@ -1,0 +1,11 @@
+#!/bin/bash
+
+current_dir=$(dirname $0)
+if [ -d "$current_dir" ]; then
+  cd "$current_dir"
+  for file in *.bib; do
+    cat "$file" >> "results.bib"
+  done
+else
+  echo "Error: current directory is not a valid directory."
+fi

@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# File containing the list of domain names (without TLDs)
+domain_file="site.txt"
+
+# Output file for available domains
+available_file="avail.txt"
+
+# TLDs to check
+tlds=(".org" ".com" ".net")
+
+# Check if site.txt exists
+if [ ! -f "$domain_file" ]; then
+  echo "Error: $domain_file not found!"
+  exit 1
+fi
+
+# Function to check domain availability
+check_domain() {
+  domain=$1
+  whois_output=$(whois "$domain")
+
+  if echo "$whois_output" | grep -q "No match for"; then
+    echo "$domain is available"
+    echo "$domain" >> "$available_file"
+  elif echo "$whois_output" | grep -q "NOT FOUND"; then
+    echo "$domain is available"
+    echo "$domain" >> "$available_file"
+  else
+    echo "$domain is taken"
+  fi
+}
+
+# Loop through each domain (without TLD) in site.txt
+while IFS= read -r base_domain; do
+  # Skip empty lines
+  if [ -n "$base_domain" ]; then
+    echo "Checking domain base: $base_domain"
+    
+    # Check each TLD (.org, .com, .net)
+    for tld in "${tlds[@]}"; do
+      full_domain="${base_domain}${tld}"
+      echo "Checking $full_domain..."
+      check_domain "$full_domain"
+    done
+  fi
+done < "$domain_file"
+
+echo "Domain availability check complete. Available domains appended to $available_file."

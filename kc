@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Clear the current session's history
+history -c
+
+# Remove the saved history file
+> ~/.bash_history
+
+# Prevent the session from overwriting the cleared history
+unset HISTFILE
+
+# Confirmation message
+echo "Bash history cleared successfully!"

@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Check if ImageMagick is installed
+if ! command -v convert &> /dev/null
+then
+    echo "ImageMagick is required but it's not installed. Install it using: sudo apt install imagemagick"
+    exit
+fi
+
+# Process all image files in the current directory
+for img in *.jpg *.JPG *.jpeg *.png; do
+    # Check if there are any matching files
+    if [ ! -f "$img" ]; then
+        echo "No images found to process."
+        exit 1
+    fi
+
+    # Calculate dimensions for 1 megapixel (1,000,000 pixels)
+    # Assume the image aspect ratio is preserved
+    width=$(identify -format "%w" "$img")
+    height=$(identify -format "%h" "$img")
+    aspect_ratio=$(echo "scale=5; $width / $height" | bc)
+    
+    # New width and height for 1 megapixel
+    new_height=$(echo "scale=0; sqrt(1000000 / $aspect_ratio)" | bc)
+    new_width=$(echo "scale=0; $aspect_ratio * $new_height" | bc)
+
+    # Resize the image to 1 megapixel
+    convert "$img" -resize "${new_width}x${new_height}" "resized_$img"
+    
+    # Apply watermark diagonally multiple times with 30% transparency
+    convert "resized_$img" -gravity center -fill white -pointsize 30 \
+        -draw "gravity center fill white fill-opacity 0.3 rotate -45 text 0,0 'Photography by Jason Page'" \
+        -draw "gravity center fill white fill-opacity 0.3 rotate -45 text 300,300 'Photography by Jason Page'" \
+        -draw "gravity center fill white fill-opacity 0.3 rotate -45 text -300,-300 'Photography by Jason Page'" \
+        "watermarked_$img"
+    
+    # Remove the intermediate resized image
+    rm "resized_$img"
+
+    echo "Processed $img"
+done
+
+echo "All images have been resized and watermarked."

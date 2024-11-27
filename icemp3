@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Directory containing the media files
+INPUT_DIR="./"
+# Directory to save the converted MP3 files
+OUTPUT_DIR="./ice"
+
+# Ensure output directory exists
+mkdir -p "$OUTPUT_DIR"
+
+# Loop through all files in the input directory
+for file in "$INPUT_DIR"/*; do
+    # Extract the filename without extension
+    filename=$(basename -- "$file")
+    extension="${filename##*.}"
+    filename="${filename%.*}"
+    
+    # Convert file to mp3 with 128kb bitrate
+    ffmpeg -i "$file" -b:a 128k "$OUTPUT_DIR/${filename}.mp3"
+done
+
+echo "Conversion complete. MP3 files saved to $OUTPUT_DIR."

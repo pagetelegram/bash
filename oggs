@@ -1,0 +1,14 @@
+#!/bin/bash
+
+mkdir ogg
+find . -type f | grep $1$ > $1-files.txt
+
+readarray -t files < $1-files.txt
+
+for file in "${files[@]}"; do
+   out=${file%.$1}.ogg
+   probe='avprobe -show_streams "$file" 2>/dev/null'
+   rate=`echo "$probe" | grep "^bit_rate" | sed "s:.*=\(.*\)[0-9][0-9][0-9][.].*:\1:" | head -1`
+   ffmpeg -i "$file" -ab 128k "$out"
+done
+mv *.ogg ./ogg

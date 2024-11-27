@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Loop through each file in the current directory
+for file in *; do
+    # Use 'sed' to remove all special characters except for the dot
+    new_name=$(echo $file | sed 's/[^a-zA-Z0-9.]//g')
+
+    # Check if the new name is different from the original name
+    if [ "$file" != "$new_name" ]; then
+        # Rename the file
+        mv "$file" "$new_name"
+    fi
+done

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Check if a file name is provided as an argument
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <filename>"
+    exit 1
+fi
+
+# Process the file
+awk '{
+    delete seen;  # Clear the array of seen words for each line
+    for (i = 1; i <= NF; i++) {
+        if (!(tolower($i) in seen)) {  # Check if the word (in lowercase to be case-insensitive) has not been seen before
+            printf "%s ", $i;  # Print the word followed by a space
+            seen[tolower($i)];  # Mark the word as seen
+        }
+    }
+    print "";  # Print a newline after processing each line
+}' $1 > nodups.txt

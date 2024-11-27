@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Function to identify the floppy drive
+identify_floppy_drive() {
+  for device in /dev/fd*; do
+    if [[ -b $device ]]; then
+      size=$(sudo fdisk -l $device 2>/dev/null | grep '1.44M\|720K')
+      if [[ -n $size ]]; then
+        echo $device
+        return 0
+      fi
+    fi
+  done
+  echo ""
+  return 1
+}
+
+# Function to dump the floppy disk image
+dump_floppy_image() {
+  local device=$1
+  local output=$2
+
+  echo "Dumping image from device $device..."
+  sudo dd if=$device of=$output bs=512 status=progress
+  echo "Image dumped to $output"
+}
+
+# Function to parse alphanumeric content from the image dump
+parse_image() {
+  local image=$1
+  local output=$2
+
+  echo "Parsing alphanumeric content from $image..."
+  strings $image | grep -o '[[:alnum:][:space:][:punct:]]*' > $output
+  echo "Parsed content saved to $output"
+}
+
+# Main loop
+counter=1
+while true; do
+  read -p "Enter the prefix for the output file name (or 'q' to quit): " prefix
+  if [[ $prefix == 'q' ]]; then
+    echo "Quitting..."
+    break
+  fi
+
+  device=$(identify_floppy_drive)
+  if [[ -z $device ]]; then
+    echo "No floppy drive found."
+    break
+  fi
+
+  image_file="${prefix}_${counter}.img"
+  text_file="${prefix}_${counter}.txt"
+
+  dump_floppy_image $device $image_file
+  if [[ $? -eq 0 ]]; then
+    parse_image $image_file $text_file
+    ((counter++))
+  else
+    echo "Skipping parsing for $device due to error in dumping image."
+  fi
+
+  read -p "Insert the next floppy disk and press Enter to continue, or 'q' to quit: " next
+  if [[ $next == 'q' ]]; then
+    echo "Quitting..."
+    break
+  fi
+done
+
+echo "Script completed."

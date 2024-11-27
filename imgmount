@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Ensure an IMG file is provided as an argument
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 <img-file>"
+  exit 1
+fi
+
+IMG_FILE="$1"
+MOUNT_POINT="$HOME/drive"
+
+# Check if the IMG file exists
+if [ ! -f "$IMG_FILE" ]; then
+  echo "Error: IMG file '$IMG_FILE' not found."
+  exit 1
+fi
+
+# Create the mount point directory if it doesn't exist
+if [ ! -d "$MOUNT_POINT" ]; then
+  echo "Creating mount point at '$MOUNT_POINT'."
+  mkdir -p "$MOUNT_POINT"
+fi
+
+# Detect the filesystem type using blkid
+FS_TYPE=$(sudo blkid -o value -s TYPE "$IMG_FILE")
+
+if [ -z "$FS_TYPE" ]; then
+  echo "Filesystem type not detected. Attempting to mount as raw loop device."
+  RAW_MOUNT=1
+else
+  echo "Filesystem type detected: $FS_TYPE"
+  RAW_MOUNT=0
+fi
+
+# Function to install necessary packages if not already installed
+install_fs_support() {
+  local package=$1
+  if ! dpkg -l | grep -q "$package"; then
+    echo "Installing package: $package"
+    sudo apt-get update && sudo apt-get install -y "$package"
+  else
+    echo "Package $package is already installed."
+  fi
+}
+
+# Install support for the detected filesystem if known
+if [ "$RAW_MOUNT" -eq 0 ]; then
+  case "$FS_TYPE" in
+    vfat|msdos)
+      install_fs_support "dosfstools"
+      ;;
+    ext2|ext3|ext4)
+      install_fs_support "e2fsprogs"
+      ;;
+    ntfs)
+      install_fs_support "ntfs-3g"
+      ;;
+    *)
+      echo "Unsupported or unrecognized filesystem type: $FS_TYPE"
+      exit 1
+      ;;
+  esac
+fi
+
+# Mount the IMG file
+if [ "$RAW_MOUNT" -eq 1 ]; then
+  echo "Mounting as raw loop device."
+  sudo losetup -fP "$IMG_FILE"
+  LOOP_DEVICE=$(losetup -j "$IMG_FILE" | cut -d: -f1)
+
+  if [ -z "$LOOP_DEVICE" ]; then
+    echo "Error: Failed to set up loop device."
+    exit 1
+  fi
+
+  sudo mount "$LOOP_DEVICE" "$MOUNT_POINT"
+else
+  echo "Mounting with filesystem type: $FS_TYPE."
+  sudo mount -o loop -t "$FS_TYPE" "$IMG_FILE" "$MOUNT_POINT"
+fi
+
+# Check if the mount was successful
+if [ $? -eq 0 ]; then
+  echo "IMG file mounted successfully at '$MOUNT_POINT'."
+else
+  echo "Error: Failed to mount the IMG file."
+  exit 1
+fi

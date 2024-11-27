@@ -1,0 +1,2 @@
+#1/bin/bash
+for file in *.*; do dest="${file//[[:space:]]/.}" && mv -i "$file" "${dest//[^[:alnum:]._-]/}"; done

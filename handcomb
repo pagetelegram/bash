@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Directory containing the mp3 files
+MP3_DIR=$1
+OUTPUT_FILE=$2
+
+
+# Temp files to store intermediate data
+TEMP_FILE="temp_list.txt"
+SHUFFLED_FILE="shuffled_list.txt"
+
+
+# Remove temp files if they exist
+rm -f $TEMP_FILE $SHUFFLED_FILE $OUTPUT_FILE
+
+# Function to clean up filenames
+clean_filename() {
+    local filename="$1"
+    # Remove all non-alphanumeric characters except spaces
+    echo "$filename" | tr -cd '[:alnum:] ._-'
+}
+
+# Clean filenames and replace the originals
+find "$MP3_DIR" -type f -name "*.mp3" | while read -r FILE; do
+    DIR=$(dirname "$FILE")
+    BASENAME=$(basename "$FILE")
+    CLEANED_BASENAME=$(clean_filename "$BASENAME")
+    NEW_FILE="$DIR/$CLEANED_BASENAME"
+    if [ "$FILE" != "$NEW_FILE" ]; then
+        mv "$FILE" "$NEW_FILE"
+    fi
+done
+
+# Shuffle the mp3 files and store the shuffled list in SHUFFLED_FILE
+find "$MP3_DIR" -type f -name "*.mp3" | shuf > $SHUFFLED_FILE
+
+# Loop through the shuffled mp3 files
+while IFS= read -r FILE; do
+    BASENAME=$(basename "$FILE")
+    ESPEAK_FILE="espeak_$BASENAME.mp3"
+    CONVERTED_MP3="converted_$BASENAME.mp3"
+
+    # Generate espeak mp3 for the announcement with stereo and CBR 128kbps
+    espeak "Thank you for listening to hand is radio, next up is $BASENAME" --stdout | ffmpeg -y -i - -ac 2 -b:a 128k "$ESPEAK_FILE"
+
+    # Convert the current mp3 file to stereo and CBR 128kbps
+    ffmpeg -y -i "$FILE" -ac 2 -b:a 128k "$CONVERTED_MP3"
+
+    # Append espeak mp3 and the converted mp3 to the temp file list
+    echo "file '$ESPEAK_FILE'" >> $TEMP_FILE
+    echo "file '$CONVERTED_MP3'" >> $TEMP_FILE
+done < $SHUFFLED_FILE
+
+# Combine all mp3 files in the temp file list into one output file with stereo and CBR 128kbps
+ffmpeg -f concat -safe 0 -i $TEMP_FILE -ac 2 -b:a 128k "$OUTPUT_FILE"
+
+# Clean up temp files
+rm -f $TEMP_FILE $SHUFFLED_FILE espeak_*.mp3 converted_*.mp3
+
+echo "Combined and shuffled file created: $OUTPUT_FILE"

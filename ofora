@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Loop through all files in the current directory
+for file in *; do
+  # Check if the file name length is at least 4 and the fourth letter is "O"
+  if [[ ${#file} -ge 4 && ${file:3:1} == "O" ]]; then
+    # Replace the fourth letter "O" with "A"
+    new_name="${file:0:3}A${file:4}"
+    
+    # Rename the file
+    mv "$file" "$new_name"
+  fi
+done
+
+echo "All applicable files have been renamed."

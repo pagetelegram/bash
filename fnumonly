@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Loop through all files in the current directory
+for file in *; do
+    # Extract the numeric part of the filename
+    numeric_part=$(echo "$file" | sed -e 's/[^0-9]//g')
+
+    # Extract the file extension
+    extension="${file##*.}"
+
+    # Construct the new filename
+    if [[ "$file" != "$extension" ]]; then  # This checks if there's an actual extension
+        new_name="${numeric_part}.${extension}"
+    else
+        new_name="${numeric_part}"
+    fi
+
+    # Rename the file if the new name is not empty and different from the original
+    if [[ -n "$numeric_part" && "$file" != "$new_name" ]]; then
+        mv -- "$file" "$new_name"
+        echo "Renamed $file to $new_name"
+    fi
+done

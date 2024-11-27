@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Create or overwrite the output CSV file
+output_file="_$1.csv"
+# echo "Full Name, Email" > "$output_file"
+
+# Read input line by line
+while IFS= read -r line; do
+    # Check if the line starts with "*"
+    if [[ $line == *"*"* ]]; then
+        # Reset variables for each new record
+        full_name=""
+        current_email=""
+        
+        # Read lines after "*" until the first non-empty line is found as the full name
+        while IFS= read -r next_line; do
+            if [ -n "$next_line" ]; then
+                # Check if a comma is present in the line
+                if [[ "$next_line" == *","* ]]; then
+                    # Extract text before the first comma as the full name
+                    full_name=$(echo "$next_line" | cut -d ',' -f 1)
+                else
+                    full_name="$next_line"
+                fi
+                break
+            fi
+        done
+
+        # Continue reading lines until an email is found
+        while IFS= read -r next_line; do
+            # Check if the line contains an email address and doesn't contain a comma
+            email=$(echo "$next_line" | grep -oP '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+            if [ -n "$email" ] && [[ ! "$next_line" == *","* ]]; then
+                # Store the email address for combining, and break to store only the first email
+                current_email="$email"
+                break
+            fi
+        done
+
+        # If a valid full name and email are found, write to the CSV file
+        if [ -n "$full_name" ] && [ -n "$current_email" ]; then
+            # Combine the full name and email
+            combined_data="$full_name,$current_email"
+
+            # Append the combined data to the CSV file
+            echo "$combined_data" >> "$output_file"
+        fi
+    fi
+done < $1  # Replace input_file.txt with the actual input file
+
+# Remove duplicates from the CSV file
+sort -u -o "$output_file" "$output_file"
+
+echo "CSV file '$output_file' created with the combined data and duplicates removed."

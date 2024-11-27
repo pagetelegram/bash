@@ -1,0 +1,14 @@
+for file in *; do
+    # Check if the filename (excluding the extension) is exactly 4 characters long
+    filename="${file%.*}"
+    if [[ "${#filename}" -eq 4 ]]; then
+        # If the file has an extension, preserve it
+        if [[ "$file" != "$filename" ]]; then
+            extension=".${file##*.}"
+        else
+            extension=""
+        fi
+        # Rename the file, removing the last character and preserving the extension
+        mv -- "$file" "${filename%?}${extension}"
+    fi
+done

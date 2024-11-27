@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Check if a file name is provided
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <filename>"
+  exit 1
+fi
+
+# The file to process
+FILENAME=$1
+
+# Check if the file exists
+if [ ! -f "$FILENAME" ]; then
+  echo "File does not exist: $FILENAME"
+  exit 1
+fi
+
+# Use cut to extract the third column and save it to 118fax.csv
+cut -d, -f3 "$FILENAME" > 118fax.csv
+
+echo "Third column exported to 118fax.csv"

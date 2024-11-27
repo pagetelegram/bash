@@ -1,0 +1,9 @@
+mkdir transcoded; for i in *.$1; do ffmpeg -i "$i" -vcodec mjpeg -q:v 2 -acodec pcm_s16be -q:a 0 -f mov "transcoded/${i%.*}.mov"; done
+cd transcoded
+#ffmpeg -i "concat:input1|input2" -codec copy complete.mov
+ls | grep .mov > files.txt
+#file './
+# '
+sed 's/^/file './ /' files.txt
+sed -e 's/$/'/' -i files.txt
+#ffmpeg -f concat -safe 0 -i files.txt -c copy complete.mov

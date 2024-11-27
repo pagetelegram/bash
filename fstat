@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Directory to monitor (change this to your desired directory)
+directory=$1
+
+while true; do
+    # Count total number of files
+    file_count=$(find "$directory" -type f | wc -l)
+
+    # Get the newest file
+    newest_file=$(find "$directory" -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
+
+    # Display the results
+    echo "Total files: $file_count"
+    echo "Newest file: $newest_file"
+    echo "---------------------------------"
+
+    # Wait for 5 seconds before checking again
+    sleep 5
+done
